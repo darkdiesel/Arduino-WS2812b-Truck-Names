@@ -1,171 +1,172 @@
+#define DEBUG_MODE true
+
+#include <EEPROM.h>
+
 // WS2812B vars
 #include "FastLED.h"
 
-#include <EEPROMex.h>
+#define LED_TYPE WS2811      // led type
+#define LED_MATRIX_1_PIN 2  // Pin to cotrol first ws812b leds
+#define LED_MATRIX_2_PIN 3  // Pin to cotrol second ws812b leds
 
-#define LED_TYPE WS2811 // led type
-#define NUM_LEDS 256     // 290. Count of leds
-
-#define LED_1_PIN 3       // Pin to control first ws812b leds
-#define LED_2_PIN 4       // Pin to control second ws812b leds
+#define NUM_LEDS 256  // Count of leds
 
 CRGB leds[NUM_LEDS];
-CLEDController* controllers[2];
 
-byte this_name = 1;
+uint8_t current_brightness = 30;
 
-byte name_1[] = {
-                 0,0,0,0,0,0,0,0, // top
-                 1,1,1,1,1,1,1,0, // bottom
-                 0,1,0,0,1,0,0,1, // top
-                 1,0,0,1,0,0,1,0, // bottom
-                 0,1,0,0,0,0,0,1, // top
-                 0,0,0,0,0,0,0,0, // bottom
-                 0,1,1,1,1,1,0,0, // top
-                 0,1,0,0,0,0,0,0, // bottom
-                 0,0,0,0,0,0,0,1, // top
-                 0,1,0,0,0,0,0,0, // bottom
-                 0,1,1,1,1,1,0,0, // top
-                 0,0,0,0,0,0,0,0, // bottom
-                 0,0,1,1,1,1,1,0, // top
-                 1,0,0,0,0,0,1,0, // bottom
-                 0,1,0,0,0,1,0,1, // top
-                 1,1,1,0,0,0,1,0, // bottom
-                 0,0,0,0,0,0,0,0, // top
-                 1,1,1,1,1,1,1,0, // bottom
-                 0,1,0,0,1,0,0,1, // top
-                 1,0,0,1,0,0,1,0, // bottom
-                 0,1,0,0,0,0,0,1, // top
-                 0,0,0,0,0,0,0,0, // bottom
-                 0,1,1,1,1,1,1,1, // top
-                 0,0,0,0,1,0,0,0, // bottom
-                 0,0,0,0,1,0,0,0, // top
-                 1,1,1,1,1,1,1,0, // bottom
-                 0,0,0,0,0,0,0,0, // top
-                 0,0,0,0,1,1,1,0, // bottom
-                 0,0,0,0,1,1,1,1, // top
-                 0,0,0,0,1,1,1,0, // bottom
-                 };
+// potenciometr vars
+#define POT_BRIGHTNESS_PIN A0 // Pit to control brightness
 
-byte name_2[] = {
-                 0,0,0,0,0,0,0,0, // top
-                 0,0,0,0,0,0,0,0, // bottom
-                 0,0,0,0,0,0,0,0, // top
-                 1,1,1,1,1,1,1,0, // bottom
-                 0,1,0,0,1,0,0,0, // top
-                 0,0,0,1,0,0,1,0, // bottom
-                 0,0,1,1,0,0,0,0, // top
-                 0,0,0,0,0,0,0,0, // bottom
-                 
-                 0,0,1,1,1,1,1,1, // top
-                 0,0,0,1,0,0,1,0, // bottom
-                 0,1,0,0,1,0,0,0, // top
-                 1,1,1,1,1,1,0,0, // bottom
-                 
-                 0,0,0,0,0,0,0,0, // top
-                 0,0,1,1,1,1,1,0,  // bottom
-                 0,0,0,0,0,0,1,0, // top
-                 1,0,0,0,0,0,0,0, // bottom
-                 0,0,0,0,0,0,1,0, // top
-                 0,0,1,1,1,1,1,0, // bottom
-                 0,0,0,0,0,0,0,0, // top
+uint32_t collors[] = // uint32_t 0 .. 4,294,967,295
+{
+  CRGB::Red,
+  CRGB::Orange,
+  CRGB::Yellow,
+  CRGB::Green,
+  CRGB::Cyan,
+  CRGB::Blue,
+  CRGB::Purple,
+};
 
-                 1,1,1,1,1,1,1,0, // bottom
-                 0,1,0,0,1,0,0,1, // top
-                 1,0,0,1,0,0,1,0, // bottom
-                 0,1,0,0,0,0,0,1, // top
-                 0,0,0,0,0,0,0,0, // bottom
+const byte collors_count = sizeof(collors) / sizeof(collors[0]);
 
-                0,1,1,1,1,1,1,1, // top
-                1,0,0,0,0,0,0,0, // bottom
-                0,0,0,0,0,0,0,1, // top
-                1,0,0,0,0,0,0,0, // bottom
-                 };
+byte current_color; // byte 	0..256
 
-int cur_brightness = 30;
-int start_from = 0;
+// buttons vars
+#define BTN_CHANGE_COLOR 12 // pin to control matrix change color
+#define BTN_SWITCH_NAMES 11 // pin to control matrix change color
 
+bool btn_change_color_last_state = LOW;
+bool btn_change_color_current_state = LOW;
+
+bool btn_switch_names_last_state = LOW;
+bool btn_switch_names_current_state = LOW;
+
+// for debounce buttons
+bool debounce(uint8_t btn_pin, bool last) {
+  bool current = digitalRead(btn_pin);
+
+  if (last != current)
+  {
+    delay(5);
+    current = digitalRead(btn_pin);
+  }
+
+  return current;
+}
+
+// update device settings
 void updateEEPROM() {
-  if (this_name == 1) {
-    EEPROM.updateByte(1, 2);
-  } else {
-    EEPROM.updateByte(1, 1);
-  }  
+  EEPROM.write(1, current_brightness);
+  EEPROM.write(2, current_color);
 }
 
+// read device settings
 void readEEPROM() {
-  this_name = EEPROM.readByte(1);
-}
-
-void set_name(CLEDController* const strip, byte controller_num) {
-  // clean leads
-  fill_solid(strip->leds(), strip->size(), CRGB::Black);
-
-  if (controller_num == 1) {
-    if (this_name == 1) {
-      for (int i = 0; i < sizeof(name_1); i++ ) {
-        if (name_1[i] == 1) {
-          strip->leds()[i].setRGB( 255, 0, 0);
-        } else {
-          strip->leds()[i].setRGB( 0, 0, 0);      
-        }
-      }
-    } else {
-      for (int i = 0; i < sizeof(name_2); i++ ) {
-        if (name_2[i] == 1) {
-          strip->leds()[i].setRGB( 255, 0, 0);
-        } else {
-          strip->leds()[i].setRGB( 0, 0, 0);      
-        }
-      }
-    }
-  } else {
-    if (this_name == 1) {
-      for (int i = 0; i < sizeof(name_2); i++ ) {
-        if (name_2[i] == 1) {
-          strip->leds()[i].setRGB( 255, 0, 0);
-        } else {
-          strip->leds()[i].setRGB( 0, 0, 0);      
-        }
-      }
-    } else {
-      for (int i = 0; i < sizeof(name_1); i++ ) {
-        if (name_1[i] == 1) {
-          strip->leds()[i].setRGB( 255, 0, 0);
-        } else {
-          strip->leds()[i].setRGB( 0, 0, 0);      
-        }
-      }   
-    }
+  current_brightness = EEPROM.read(1);
+  current_color = EEPROM.read(2);
+  
+  if (current_brightness == 0) {
+    current_brightness = 30;
+    updateEEPROM();
   }
 
-  delay(1000);
-
-  strip->showLeds();
-}
-
-void set_names(){
-  for(int i = 0; i < 2; i++) {
-    set_name(controllers[i], i);
+  // set random figure color
+  if (current_color >= collors_count) {
+      current_color = 0;
   }
-
-  updateEEPROM();
 }
 
 void setup() {
-  Serial.begin(9600);
+  if (DEBUG_MODE) {
+    Serial.begin(9600);
+  }
 
-  // setup led
-  FastLED.setBrightness(cur_brightness);  // set leds brightness
-  
-  controllers[0] = &FastLED.addLeds<LED_TYPE, LED_1_PIN, GRB>(leds, NUM_LEDS);
-  controllers[1] = &FastLED.addLeds<LED_TYPE, LED_2_PIN, GRB>(leds, NUM_LEDS);
-
+  // Read variables from memory
   readEEPROM();
 
-  set_names();
+  // Update variables from memory
+  updateEEPROM();
+
+  // setup led
+  FastLED.setBrightness(current_brightness);  // set leds brightness
+  FastLED.addLeds<LED_TYPE, LED_MATRIX_1_PIN, GRB>(leds, NUM_LEDS);
+
+  // make lead black before start
+  FastLED.clear();
+  fill_solid(leds, 256, collors[current_color]);
+  FastLED.show();
+
+  // setup potentiometer
+  pinMode(POT_BRIGHTNESS_PIN, INPUT);
+
+  // setup buttons
+  pinMode(BTN_CHANGE_COLOR, INPUT_PULLUP);
+  pinMode(BTN_SWITCH_NAMES, INPUT_PULLUP);
 }
 
 void loop() {
-  // No Loop
+  // control brightness
+  int sensorValue = analogRead(POT_BRIGHTNESS_PIN);
+  int new_brightness = map(sensorValue, 0, 1023, 0, 255);
+
+  if ( (new_brightness > ( current_brightness + 2)) || (new_brightness < ( current_brightness - 2)) ) {
+    if (DEBUG_MODE) {
+      Serial.print("New brightness: ");
+      Serial.println(new_brightness);
+    }
+
+    current_brightness = new_brightness;
+
+    FastLED.setBrightness(current_brightness);  // set leds brightness
+    FastLED.show();
+
+    updateEEPROM();
+  }
+
+  // control color for matrix
+  btn_change_color_current_state = debounce(BTN_CHANGE_COLOR, btn_change_color_last_state);
+
+  if (btn_change_color_last_state == HIGH && btn_change_color_current_state == LOW) {
+    //change color
+
+    if (DEBUG_MODE) {
+      Serial.println("Change color btn pressed");
+    }
+
+    if (++current_color >= collors_count) {
+      current_color = 0;
+    }
+
+    fill_solid(leds, 256, collors[current_color]);
+    FastLED.show();
+
+    updateEEPROM();
+  }
+
+  btn_change_color_last_state = btn_change_color_current_state;
+
+
+  // control name for matrix
+  btn_switch_names_current_state = debounce(BTN_SWITCH_NAMES, btn_switch_names_last_state);
+
+  if (btn_switch_names_last_state == HIGH && btn_switch_names_current_state == LOW) {
+    //change color
+
+    if (DEBUG_MODE) {
+      Serial.println("Switch names btn pressed");
+    }
+
+    if (++current_color >= collors_count) {
+      current_color = 0;
+    }
+
+    fill_solid(leds, 256, collors[current_color]);
+    FastLED.show();
+
+    updateEEPROM();
+  }
+
+  btn_switch_names_last_state = btn_switch_names_current_state;
 }
