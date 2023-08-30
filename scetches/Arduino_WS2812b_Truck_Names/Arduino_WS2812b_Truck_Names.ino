@@ -13,11 +13,17 @@
 
 CRGB leds[NUM_LEDS];
 
-uint8_t current_brightness = 30;
+/// @param scale a 0-255 value for how much to scale all leds before writing them out
+uint8_t current_brightness = 50;
 
 // potenciometr vars
 #define POT_BRIGHTNESS_PIN A0 // Pit to control brightness
 
+#define BRIGHTNESS_VALS_COUNT 50
+byte bryghtness_vals[BRIGHTNESS_VALS_COUNT];
+byte bryghtness_val_index = 0; // calculate brightness count
+
+// color vars
 uint32_t collors[] = // uint32_t 0 .. 4,294,967,295
 {
   CRGB::Red,
@@ -54,6 +60,55 @@ bool debounce(uint8_t btn_pin, bool last) {
   }
 
   return current;
+}
+
+bool analogReadSave(uint8_t analog_pin, byte &bryghtness_val_index, byte* bryghtness_vals_arr) {
+  int sensorValue = analogRead(analog_pin);
+  int new_brightness = map(sensorValue, 0, 1023, 0, 255);
+
+  bryghtness_vals_arr[bryghtness_val_index] = new_brightness;
+
+  if (++bryghtness_val_index >= BRIGHTNESS_VALS_COUNT) {
+    bryghtness_val_index = 0;
+  }
+}
+
+byte analogReadMedium(byte* bryghtness_vals_arr) {
+  int sum = 0;
+
+  for (int i = 0; i < BRIGHTNESS_VALS_COUNT; i++) {
+    sum += bryghtness_vals_arr[i];
+  }
+
+  Serial.print("sum: ");
+  Serial.print(sum);
+  Serial.println();
+
+  // Serial.print("sum / BRIGHTNESS_VALS_COUNT: ");
+  // Serial.print(((float)sum / (float)BRIGHTNESS_VALS_COUNT));
+  // Serial.println();
+  // Serial.print(round((float)sum / (float)BRIGHTNESS_VALS_COUNT));
+  // Serial.println();
+
+  
+
+  // sum = sum>>4;
+
+  // Serial.print("sum>>4: ");
+  // Serial.print(sum);
+  // Serial.println();
+  
+  return round((float)sum / (float)BRIGHTNESS_VALS_COUNT);
+  //return (int)((float)sum / (float)BRIGHTNESS_VALS_COUNT) + 1;  
+}
+
+void print_analog_vals(){
+  for (uint8_t i = 0 ; i < BRIGHTNESS_VALS_COUNT; i++ ) {
+    Serial.print(bryghtness_vals[i]);
+    Serial.print(" ");
+  }
+  
+  Serial.println();
 }
 
 // update device settings
@@ -107,22 +162,28 @@ void setup() {
 }
 
 void loop() {
-  // control brightness
-  int sensorValue = analogRead(POT_BRIGHTNESS_PIN);
-  int new_brightness = map(sensorValue, 0, 1023, 0, 255);
+  analogReadSave(POT_BRIGHTNESS_PIN, bryghtness_val_index, bryghtness_vals);
 
-  if ( (new_brightness > ( current_brightness + 2)) || (new_brightness < ( current_brightness - 2)) ) {
-    if (DEBUG_MODE) {
-      Serial.print("New brightness: ");
-      Serial.println(new_brightness);
+  if (bryghtness_val_index  == (BRIGHTNESS_VALS_COUNT - 1)) {
+    byte new_brightness = analogReadMedium(bryghtness_vals);
+
+    //if ( (new_brightness > ( current_brightness + 1)) || (new_brightness < ( current_brightness - 1)) ) {
+    
+    if ( new_brightness != current_brightness ) {
+      if (DEBUG_MODE) {
+        // print_analog_vals();
+
+        Serial.print("New brightness: ");
+        Serial.println(new_brightness);
+      }
+
+      current_brightness = new_brightness;
+
+      FastLED.setBrightness(current_brightness);  // set leds brightness
+      FastLED.show();
+
+      updateEEPROM();
     }
-
-    current_brightness = new_brightness;
-
-    FastLED.setBrightness(current_brightness);  // set leds brightness
-    FastLED.show();
-
-    updateEEPROM();
   }
 
   // control color for matrix
