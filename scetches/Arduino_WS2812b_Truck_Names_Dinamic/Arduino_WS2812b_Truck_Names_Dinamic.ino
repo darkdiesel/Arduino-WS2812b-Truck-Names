@@ -6,7 +6,7 @@
 #define LED_TYPE WS2811 // led type
 #define NUM_LEDS 256     // 290. Count of leds
 
-#define LED_1_PIN 3       // Pin to control first ws812b leds
+#define LED_1_PIN 2       // Pin to control first ws812b leds
 #define LED_2_PIN 4       // Pin to control second ws812b leds
 
 CRGB leds[NUM_LEDS];
