@@ -1,4 +1,4 @@
-#define DEBUG_MODE true
+#define DEBUG_MODE false
 
 #include <EEPROM.h>
 
@@ -6,7 +6,7 @@
 #include "FastLED.h"
 
 #define LED_TYPE WS2811      // led type
-#define LED_MATRIX_1_PIN 2  // Pin to cotrol first ws812b leds
+#define LED_MATRIX_1_PIN 3  // Pin to cotrol first ws812b leds
 #define LED_MATRIX_2_PIN 3  // Pin to cotrol second ws812b leds
 
 #define NUM_LEDS 256     // Count of leds
@@ -58,6 +58,8 @@ const byte LET_A[][LETTER_HEIGHT] = {{0, 0, 1, 1, 1, 1},{0, 1, 0, 1, 0, 0}, {1, 
 const byte LET_P[][LETTER_HEIGHT] = {{0, 1, 1, 0, 0, 0},{1, 0, 0, 1, 0, 0}, {1, 0, 0, 1, 0, 0},{1, 1, 1, 1, 1, 1}};
 const byte LET_V[][LETTER_HEIGHT] = {{1, 1, 1, 1, 0, 0},{0, 0, 0, 0, 1, 0}, {0, 0, 0, 0, 0, 1},{0, 0, 0, 0, 1, 0},{1, 1, 1, 1, 0, 0}};
 const byte LET_L[][LETTER_HEIGHT] = {{0, 0, 0, 0, 0, 1},{0, 0, 0, 0, 0, 1}, {0, 0, 0, 0, 0, 1},{1, 1, 1, 1, 1, 1}};
+const byte LET_G[][LETTER_HEIGHT] = {{1, 0, 0, 1, 1, 1},{1, 0, 0, 1, 0, 1}, {1, 0, 0, 0, 0, 1},{0, 1, 1, 1, 1, 0}};
+const byte LET_Y[][LETTER_HEIGHT] = {{1, 1, 1, 0, 0, 0}, {0, 0, 0, 1, 1, 1},{1, 1, 1, 0, 0, 0}};
 
 #define ROWS_WRAP 1
 #define COLLS_WRAP 1
@@ -140,17 +142,17 @@ void drawName(){
   FastLED.clear();
 
   // ZHENIA
-  drawChar(LET_Z, sizeof(LET_Z) / sizeof(LET_Z[0]), current_position_x);
-  current_position_x += LETTER_SPACE;
-  drawChar(LET_H, sizeof(LET_H) / sizeof(LET_H[0]), current_position_x);
-  current_position_x += LETTER_SPACE;
-  drawChar(LET_E, sizeof(LET_E) / sizeof(LET_E[0]), current_position_x);
-  current_position_x += LETTER_SPACE;
-  drawChar(LET_N, sizeof(LET_N) / sizeof(LET_N[0]), current_position_x);
-  current_position_x += LETTER_SPACE;
-  drawChar(LET_I, sizeof(LET_I) / sizeof(LET_I[0]), current_position_x);
-  current_position_x += LETTER_SPACE;
-  drawChar(LET_A, sizeof(LET_A) / sizeof(LET_A[0]), current_position_x);
+  // drawChar(LET_Z, sizeof(LET_Z) / sizeof(LET_Z[0]), current_position_x);
+  // current_position_x += LETTER_SPACE;
+  // drawChar(LET_H, sizeof(LET_H) / sizeof(LET_H[0]), current_position_x);
+  // current_position_x += LETTER_SPACE;
+  // drawChar(LET_E, sizeof(LET_E) / sizeof(LET_E[0]), current_position_x);
+  // current_position_x += LETTER_SPACE;
+  // drawChar(LET_N, sizeof(LET_N) / sizeof(LET_N[0]), current_position_x);
+  // current_position_x += LETTER_SPACE;
+  // drawChar(LET_I, sizeof(LET_I) / sizeof(LET_I[0]), current_position_x);
+  // current_position_x += LETTER_SPACE;
+  // drawChar(LET_A, sizeof(LET_A) / sizeof(LET_A[0]), current_position_x);
 
   // PAVEL
   // current_position_x = ROWS_WRAP + 2;
@@ -164,6 +166,21 @@ void drawName(){
   // drawChar(LET_E, sizeof(LET_E) / sizeof(LET_E[0]), current_position_x);
   // current_position_x += LETTER_SPACE;
   // drawChar(LET_L, sizeof(LET_L) / sizeof(LET_L[0]), current_position_x);
+
+  // EVGENY
+
+  drawChar(LET_E, sizeof(LET_E) / sizeof(LET_E[0]), current_position_x);
+  current_position_x += LETTER_SPACE;
+  drawChar(LET_V, sizeof(LET_V) / sizeof(LET_V[0]), current_position_x);
+  current_position_x += LETTER_SPACE;
+  drawChar(LET_G, sizeof(LET_G) / sizeof(LET_G[0]), current_position_x);
+  current_position_x += LETTER_SPACE;
+  drawChar(LET_E, sizeof(LET_E) / sizeof(LET_E[0]), current_position_x);
+  current_position_x += LETTER_SPACE;
+  drawChar(LET_N, sizeof(LET_N) / sizeof(LET_N[0]), current_position_x);
+  current_position_x += LETTER_SPACE;
+  drawChar(LET_Y, sizeof(LET_Y) / sizeof(LET_Y[0]), current_position_x);
+  current_position_x += LETTER_SPACE;
 
   FastLED.show();
 }
@@ -274,6 +291,8 @@ void readEEPROM() {
   if (current_color >= colors_count) {
       current_color = 0;
   }
+
+  current_brightness = 120;
 }
 
 void setup() {
@@ -288,7 +307,7 @@ void setup() {
   updateEEPROM();
 
   // setup led
-  FastLED.setBrightness(current_brightness);  // set leds brightness
+  FastLED.setBrightness(200);  // set leds brightness
   FastLED.addLeds<LED_TYPE, LED_MATRIX_1_PIN, GRB>(leds, NUM_LEDS);
 
   // make lead black before start
@@ -300,74 +319,74 @@ void setup() {
   // FastLED.show();
 
   // setup potentiometer
-  pinMode(POT_BRIGHTNESS_PIN, INPUT);
+  //pinMode(POT_BRIGHTNESS_PIN, INPUT);
 
   // setup buttons
-  pinMode(BTN_CHANGE_COLOR, INPUT_PULLUP);
-  pinMode(BTN_SWITCH_NAMES, INPUT_PULLUP);
+  //pinMode(BTN_CHANGE_COLOR, INPUT_PULLUP);
+  //pinMode(BTN_SWITCH_NAMES, INPUT_PULLUP);
 }
 
 void loop() {
-  analogReadSave(POT_BRIGHTNESS_PIN, bryghtness_val_index, bryghtness_vals);
+  // analogReadSave(POT_BRIGHTNESS_PIN, bryghtness_val_index, bryghtness_vals);
 
-  if (bryghtness_val_index  == (BRIGHTNESS_VALS_COUNT - 1)) {
-    byte new_brightness = analogReadMedium(bryghtness_vals);
+  // if (bryghtness_val_index  == (BRIGHTNESS_VALS_COUNT - 1)) {
+  //   byte new_brightness = analogReadMedium(bryghtness_vals);
 
-    //if ( (new_brightness > ( current_brightness + 1)) || (new_brightness < ( current_brightness - 1)) ) {
+  //   //if ( (new_brightness > ( current_brightness + 1)) || (new_brightness < ( current_brightness - 1)) ) {
     
-    if ( new_brightness != current_brightness ) {
-      if (DEBUG_MODE) {
-        Serial.print("New brightness: ");
-        Serial.println(new_brightness);
-      }
+  //   if ( new_brightness != current_brightness ) {
+  //     if (DEBUG_MODE) {
+  //       Serial.print("New brightness: ");
+  //       Serial.println(new_brightness);
+  //     }
 
-      current_brightness = new_brightness;
+  //     current_brightness = new_brightness;
 
-      FastLED.setBrightness(current_brightness);  // set leds brightness
-      FastLED.show();
+  //     FastLED.setBrightness(current_brightness);  // set leds brightness
+  //     FastLED.show();
 
-      updateEEPROM();
-    }
-  }
+  //     updateEEPROM();
+  //   }
+  // }
 
   // control color for matrix
-  btn_change_color_current_state = debounce(BTN_CHANGE_COLOR, btn_change_color_last_state);
+  // btn_change_color_current_state = debounce(BTN_CHANGE_COLOR, btn_change_color_last_state);
 
-  if (btn_change_color_last_state == HIGH && btn_change_color_current_state == LOW) {
-    //change color
+  // if (btn_change_color_last_state == HIGH && btn_change_color_current_state == LOW) {
+  //   //change color
 
-    if (DEBUG_MODE) {
-      Serial.println("Change color btn pressed");
-    }
+  //   if (DEBUG_MODE) {
+  //     Serial.println("Change color btn pressed");
+  //   }
 
-    // check if animation switch off and then change color
-    if (!animation_state) {
-      changeCurrentColor();
+  //   // check if animation switch off and then change color
+  //   if (!animation_state) {
+  //     changeCurrentColor();
 
-      // start animation
-      animation_state = HIGH;
+  //     // start animation
+  //     animation_state = HIGH;
 
-      updateEEPROM();
-    }    
-  }
+  //     updateEEPROM();
+  //   }    
+  // }
 
-  btn_change_color_last_state = btn_change_color_current_state;
+  // btn_change_color_last_state = btn_change_color_current_state;
 
 
   // control name for matrix
-  btn_switch_names_current_state = debounce(BTN_SWITCH_NAMES, btn_switch_names_last_state);
+  // btn_switch_names_current_state = debounce(BTN_SWITCH_NAMES, btn_switch_names_last_state);
 
-  if (btn_switch_names_last_state == HIGH && btn_switch_names_current_state == LOW) {
-    //change color
+  // if (btn_switch_names_last_state == HIGH && btn_switch_names_current_state == LOW) {
+  //   //change color
 
-    if (DEBUG_MODE) {
-      Serial.println("Switch names btn pressed");
-    }
+  //   if (DEBUG_MODE) {
+  //     Serial.println("Switch names btn pressed");
+  //   }
 
-    updateEEPROM();
-  }
+  //   updateEEPROM();
+  // }
 
-  btn_switch_names_last_state = btn_switch_names_current_state;
+  // btn_switch_names_last_state = btn_switch_names_current_state;
 
   //check animation
   if (animation_state) {

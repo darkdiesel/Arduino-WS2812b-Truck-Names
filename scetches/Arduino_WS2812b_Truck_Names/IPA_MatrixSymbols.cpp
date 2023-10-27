@@ -10,6 +10,6 @@ void IPA_MatrixSymbols::init(uint8_t pin) {
   pinMode(pin, OUTPUT);
 }
 
-void IPA_MatrixSymbols::draw(unsigned int frequency, unsigned long duration = 0){
+// void IPA_MatrixSymbols::draw(unsigned int frequency, unsigned long duration = 0){
   
-}
+// }
